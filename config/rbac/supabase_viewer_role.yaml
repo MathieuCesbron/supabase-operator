@@ -1,0 +1,27 @@
+# permissions for end users to view supabases.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: supabase-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: supabase-operator
+    app.kubernetes.io/part-of: supabase-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: supabase-viewer-role
+rules:
+- apiGroups:
+  - supabase.com
+  resources:
+  - supabases
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - supabase.com
+  resources:
+  - supabases/status
+  verbs:
+  - get
