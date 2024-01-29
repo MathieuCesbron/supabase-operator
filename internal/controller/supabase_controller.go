@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +43,18 @@ type SupabaseReconciler struct {
 func (r *SupabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log = log.FromContext(ctx).WithName("SupabaseReconciler")
 
-	return ctrl.Result{}, nil
+	supabase := &supabasecomv1.Supabase{}
+	err := r.Get(ctx, req.NamespacedName, supabase)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			r.Log.Info("supabase cr has been deleted")
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{}, fmt.Errorf("error getting supabase cr: %w", err)
+	}
+
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
