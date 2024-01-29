@@ -41,6 +41,14 @@ func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *a
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      supabase.Name,
 			Namespace: supabase.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: supabase.APIVersion,
+					Kind:       supabase.Kind,
+					Name:       supabase.Name,
+					UID:        supabase.UID,
+				},
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
