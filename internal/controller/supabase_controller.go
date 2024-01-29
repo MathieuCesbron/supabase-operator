@@ -25,31 +25,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	supabasecomv1 "github.com/MathieuCesbron/supabase-operator/api/v1"
+	"github.com/go-logr/logr"
 )
 
 // SupabaseReconciler reconciles a Supabase object
 type SupabaseReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
-//+kubebuilder:rbac:groups=supabase.com,resources=supabases,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=supabase.com,resources=supabases/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=supabase.com,resources=supabases/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Supabase object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
+// +kubebuilder:rbac:groups=supabase.com,resources=supabases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=supabase.com,resources=supabases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=supabase.com,resources=supabases/finalizers,verbs=update
 func (r *SupabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
+	r.Log = log.FromContext(ctx).WithName("SupabaseReconciler")
 
 	return ctrl.Result{}, nil
 }
