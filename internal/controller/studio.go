@@ -13,34 +13,34 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *SupabaseReconciler) CreateDatabase(ctx context.Context, supabase *supabasecomv1.Supabase) error {
+func (r *SupabaseReconciler) CreateStudio(ctx context.Context, supabase *supabasecomv1.Supabase) error {
 	found := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{
 		Namespace: supabase.Namespace,
-		Name:      supabase.Name + "-database",
+		Name:      supabase.Name + "-studio",
 	}, found)
 
 	if err != nil && k8serrors.IsNotFound(err) {
-		dep := r.GetDBDManifest(supabase)
-		r.Log.Info("creating database deployment")
+		dep := r.GetStudioManifest(supabase)
+		r.Log.Info("creating studio deployment")
 		err := r.Create(ctx, dep)
 		if err != nil {
-			return fmt.Errorf("error creating database deployment: %w", err)
+			return fmt.Errorf("error creating studio deployment: %w", err)
 		}
 
 		return err
 	} else if err != nil {
-		return fmt.Errorf("error getting database deployment: %w", err)
+		return fmt.Errorf("error getting studio deployment: %w", err)
 	}
 
 	return nil
 }
 
-func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *appsv1.Deployment {
-	ls := common.CreateLabels(supabase.Name, "database")
+func (r *SupabaseReconciler) GetStudioManifest(supabase *supabasecomv1.Supabase) *appsv1.Deployment {
+	ls := common.CreateLabels(supabase.Name, "studio")
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            supabase.Name + "-database",
+			Name:            supabase.Name + "-studio",
 			Namespace:       supabase.Namespace,
 			OwnerReferences: common.CreateOwnerReferences(supabase),
 		},
@@ -54,17 +54,8 @@ func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *a
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image: "supabase/postgres:latest",
-						Name:  "postgres",
-						Env: []corev1.EnvVar{
-							{Name: "POSTGRES_HOST", Value: "/var/run/postgresql"},
-							{Name: "POSTGRES_PORT", Value: "5432"},
-							{Name: "POSTGRES_USER", Value: "postgres"},
-							{Name: "POSTGRES_PASSWORD", Value: "example"},
-							{Name: "POSTGRES_DB", Value: "postgres"},
-							{Name: "JWT_SECRET", Value: "example"},
-							{Name: "JWT_EXP", Value: "example"},
-						},
+						Image: "supabase/studio:20240101-8e4a094",
+						Name:  "studio",
 					}},
 				},
 			},

@@ -59,6 +59,11 @@ func (r *SupabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	err = r.CreateStudio(ctx, supabase)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, err
 }
 
