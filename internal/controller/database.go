@@ -11,6 +11,11 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+const (
+	DBPort = 5432
 )
 
 func (r *SupabaseReconciler) CreateDatabase(ctx context.Context, supabase *supabasecomv1.Supabase) error {
@@ -21,22 +26,39 @@ func (r *SupabaseReconciler) CreateDatabase(ctx context.Context, supabase *supab
 	}, found)
 
 	if err != nil && k8serrors.IsNotFound(err) {
-		dep := r.GetDBDManifest(supabase)
+		dep := r.GetDBDep(supabase)
 		r.Log.Info("creating database deployment")
 		err := r.Create(ctx, dep)
 		if err != nil {
 			return fmt.Errorf("error creating database deployment: %w", err)
 		}
+	} else if err != nil {
+		return fmt.Errorf("error getting database deployment: %w", err)
+	}
+
+	svc := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: supabase.Namespace,
+		Name:      supabase.Name + "-database",
+	}, svc)
+
+	if err != nil && k8serrors.IsNotFound(err) {
+		svc = r.GetDBSVC(supabase)
+		r.Log.Info("creating database service")
+		err := r.Create(ctx, svc)
+		if err != nil {
+			return fmt.Errorf("error creating database service: %w", err)
+		}
 
 		return err
 	} else if err != nil {
-		return fmt.Errorf("error getting database deployment: %w", err)
+		return fmt.Errorf("error getting database service: %w", err)
 	}
 
 	return nil
 }
 
-func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *appsv1.Deployment {
+func (r *SupabaseReconciler) GetDBDep(supabase *supabasecomv1.Supabase) *appsv1.Deployment {
 	ls := common.CreateLabels(supabase.Name, "database")
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,6 +78,12 @@ func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *a
 					Containers: []corev1.Container{{
 						Image: "supabase/postgres:latest",
 						Name:  "postgres",
+						Ports: []corev1.ContainerPort{
+							{
+								Name:          "postgres",
+								ContainerPort: 5432,
+							},
+						},
 						Env: []corev1.EnvVar{
 							{Name: "POSTGRES_HOST", Value: "/var/run/postgresql"},
 							{Name: "POSTGRES_PORT", Value: "5432"},
@@ -66,6 +94,27 @@ func (r *SupabaseReconciler) GetDBDManifest(supabase *supabasecomv1.Supabase) *a
 							{Name: "JWT_EXP", Value: "example"},
 						},
 					}},
+				},
+			},
+		},
+	}
+}
+
+func (r *SupabaseReconciler) GetDBSVC(supabase *supabasecomv1.Supabase) *corev1.Service {
+	ls := common.CreateLabels(supabase.Name, "database")
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            supabase.Name + "-database",
+			Namespace:       supabase.Namespace,
+			OwnerReferences: common.CreateOwnerReferences(supabase),
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: ls,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "postgres",
+					TargetPort: intstr.IntOrString{IntVal: DBPort},
+					Port:       DBPort,
 				},
 			},
 		},
